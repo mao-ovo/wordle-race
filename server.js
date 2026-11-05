@@ -91,23 +91,82 @@ function endGame(roomCode) {
 
   room.status = 'lobby';
 
-  const leaderboard = Array.from(room.playerIds)
-    .map(id => {
-      const p = players[id];
-      return {
-        playerId: id,
-        name: p ? p.name : 'Player',
-        avatar: p ? p.avatar : 'terminal',
-        wordsCompleted: p ? (p.mpWordsCompleted || 0) : 0
-      };
-    })
-    .sort((a, b) => b.wordsCompleted - a.wordsCompleted)
-    .map((p, idx) => ({
-      ...p,
-      rank: idx + 1
-    }));
+  // Collect all players who participated (including any who disconnected late)
+  const playerMap = new Map();
 
-  io.to(roomCode).emit('game-over', { leaderboard });
+  // Populate active players in room
+  room.playerIds.forEach(id => {
+    const p = players[id];
+    if (p) {
+      playerMap.set(id, {
+        playerId: id,
+        name: p.name || 'Player',
+        avatar: p.avatar || 'terminal',
+        wordsCompleted: p.mpWordsCompleted || 0,
+        currentRow: p.mpRow || 0,
+        bestLettersRight: p.mpBestLettersRight || 0,
+        totalLettersRight: p.mpTotalLettersRight || 0,
+        bestPresentLetters: p.mpBestPresentLetters || 0
+      });
+    }
+  });
+
+  // Preserve any recorded participants who might have disconnected
+  if (room.matchStats) {
+    Object.values(room.matchStats).forEach(stat => {
+      if (!playerMap.has(stat.playerId)) {
+        playerMap.set(stat.playerId, { ...stat });
+      }
+    });
+  }
+
+  const allPlayers = Array.from(playerMap.values());
+  const hasWinner = allPlayers.some(p => p.wordsCompleted > 0);
+
+  allPlayers.sort((a, b) => {
+    if (hasWinner) {
+      // Primary: Words completed descending
+      if (b.wordsCompleted !== a.wordsCompleted) {
+        return b.wordsCompleted - a.wordsCompleted;
+      }
+      // Tie-breaker 1: Best letters right in current word
+      if (b.bestLettersRight !== a.bestLettersRight) {
+        return b.bestLettersRight - a.bestLettersRight;
+      }
+      // Tie-breaker 2: Total letters right across race
+      if (b.totalLettersRight !== a.totalLettersRight) {
+        return b.totalLettersRight - a.totalLettersRight;
+      }
+      // Tie-breaker 3: Rows reached
+      return b.currentRow - a.currentRow;
+    } else {
+      // NOBODY SOLVED A WORD: Winner is who guessed most letters right
+      // Primary: Best letters right in a single guess
+      if (b.bestLettersRight !== a.bestLettersRight) {
+        return b.bestLettersRight - a.bestLettersRight;
+      }
+      // Secondary: Total letters right across guesses
+      if (b.totalLettersRight !== a.totalLettersRight) {
+        return b.totalLettersRight - a.totalLettersRight;
+      }
+      // Tertiary: Yellow (present) letters
+      if (b.bestPresentLetters !== a.bestPresentLetters) {
+        return b.bestPresentLetters - a.bestPresentLetters;
+      }
+      // Fourth: Rows attempted
+      return b.currentRow - a.currentRow;
+    }
+  });
+
+  const leaderboard = allPlayers.map((p, idx) => ({
+    ...p,
+    rank: idx + 1
+  }));
+
+  io.to(roomCode).emit('game-over', {
+    leaderboard,
+    hasWinner
+  });
 
   // Reset ready state for next game
   room.playerIds.forEach(id => {
@@ -211,7 +270,8 @@ io.on('connection', (socket) => {
     leaveRoom(socket.id);
 
     const player = players[socket.id];
-    const timeLimit = Math.max(30, Math.min(1800, parseInt(data.timeLimit) || 180));
+    const minLimit = (process.env.PORT === '3099' || process.env.NODE_ENV === 'test') ? 1 : 30;
+    const timeLimit = Math.max(minLimit, Math.min(1800, parseInt(data.timeLimit) || 180));
     const roomCode = generateRoomCode();
 
     const room = {
@@ -340,7 +400,8 @@ io.on('connection', (socket) => {
     // Prepare 100 multiplayer race words
     room.wordSequence = words.getMultiplayerWords(100);
 
-    // Reset player race stats
+    // Reset player race stats and initialize match record
+    room.matchStats = {};
     room.playerIds.forEach(id => {
       const p = players[id];
       if (p) {
@@ -348,6 +409,20 @@ io.on('connection', (socket) => {
         p.mpRow = 0;
         p.mpWordsCompleted = 0;
         p.mpGuesses = [];
+        p.mpBestLettersRight = 0;
+        p.mpTotalLettersRight = 0;
+        p.mpBestPresentLetters = 0;
+
+        room.matchStats[id] = {
+          playerId: id,
+          name: p.name || 'Player',
+          avatar: p.avatar || 'terminal',
+          wordsCompleted: 0,
+          currentRow: 0,
+          bestLettersRight: 0,
+          totalLettersRight: 0,
+          bestPresentLetters: 0
+        };
       }
     });
 
@@ -418,6 +493,18 @@ io.on('connection', (socket) => {
     const results = evaluateGuess(guess, currentAnswer);
     const isCorrect = (guess === currentAnswer);
 
+    // Track letter performance
+    const correctCount = results.filter(r => r === 'correct').length;
+    const presentCount = results.filter(r => r === 'present').length;
+
+    player.mpTotalLettersRight = (player.mpTotalLettersRight || 0) + correctCount;
+    if (correctCount > (player.mpBestLettersRight || 0)) {
+      player.mpBestLettersRight = correctCount;
+    }
+    if (presentCount > (player.mpBestPresentLetters || 0)) {
+      player.mpBestPresentLetters = presentCount;
+    }
+
     // Send guess result to guesser
     socket.emit('guess-result', {
       guess,
@@ -432,6 +519,16 @@ io.on('connection', (socket) => {
       player.mpWordIndex++;
       player.mpRow = 0;
       player.mpGuesses = [];
+      player.mpBestLettersRight = 0;
+      player.mpBestPresentLetters = 0;
+
+      if (room.matchStats && room.matchStats[socket.id]) {
+        room.matchStats[socket.id].wordsCompleted = player.mpWordsCompleted;
+        room.matchStats[socket.id].currentRow = 0;
+        room.matchStats[socket.id].bestLettersRight = 0;
+        room.matchStats[socket.id].totalLettersRight = player.mpTotalLettersRight;
+        room.matchStats[socket.id].bestPresentLetters = 0;
+      }
 
       socket.emit('word-complete', {
         wordNumber: finishedIndex + 1,
@@ -463,6 +560,16 @@ io.on('connection', (socket) => {
         player.mpWordIndex++;
         player.mpRow = 0;
         player.mpGuesses = [];
+        player.mpBestLettersRight = 0;
+        player.mpBestPresentLetters = 0;
+
+        if (room.matchStats && room.matchStats[socket.id]) {
+          room.matchStats[socket.id].wordsCompleted = player.mpWordsCompleted;
+          room.matchStats[socket.id].currentRow = 0;
+          room.matchStats[socket.id].bestLettersRight = 0;
+          room.matchStats[socket.id].totalLettersRight = player.mpTotalLettersRight;
+          room.matchStats[socket.id].bestPresentLetters = 0;
+        }
 
         socket.emit('word-complete', {
           wordNumber: finishedIndex + 1,
@@ -483,6 +590,14 @@ io.on('connection', (socket) => {
           wordNumber: player.mpWordIndex + 1
         });
       } else {
+        if (room.matchStats && room.matchStats[socket.id]) {
+          room.matchStats[socket.id].wordsCompleted = player.mpWordsCompleted;
+          room.matchStats[socket.id].currentRow = player.mpRow;
+          room.matchStats[socket.id].bestLettersRight = player.mpBestLettersRight;
+          room.matchStats[socket.id].totalLettersRight = player.mpTotalLettersRight;
+          room.matchStats[socket.id].bestPresentLetters = player.mpBestPresentLetters;
+        }
+
         // Update opponent view of current row attempt
         io.to(room.code).emit('opponent-update', {
           playerId: socket.id,

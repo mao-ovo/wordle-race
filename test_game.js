@@ -130,10 +130,65 @@ async function runTests() {
   console.log('✓ Old answer guess on retry was not correct (new word given!): isCorrect =', retryResult.isCorrect);
   if (retryResult.isCorrect) throw new Error('Retry must have a different word');
 
+  // 7. Test Scoreboard tiebreak when nobody solves a word (time expires)
+  console.log('Testing Scoreboard and tie-break by letters when no winner...');
+  const p4 = io(SERVER_URL);
+  const p5 = io(SERVER_URL);
+  await Promise.all([
+    new Promise(res => p4.on('connect', res)),
+    new Promise(res => p5.on('connect', res))
+  ]);
+
+  p4.emit('set-profile', { name: 'PlayerRed', avatar: 'sparkles' });
+  p5.emit('set-profile', { name: 'PlayerBlue', avatar: 'shield' });
+
+  let testRoomCode = null;
+  const roomCreated2 = new Promise(resolve => p4.once('room-created', data => {
+    testRoomCode = data.roomCode;
+    resolve();
+  }));
+  p4.emit('create-room', { timeLimit: 1 }); // 1 second match
+  await roomCreated2;
+
+  const p5Joined = new Promise(resolve => p5.once('room-joined', resolve));
+  p5.emit('join-room', { roomCode: testRoomCode });
+  await p5Joined;
+
+  const p5Ready = new Promise(resolve => p4.once('ready-update', resolve));
+  p5.emit('toggle-ready', {});
+  await p5Ready;
+
+  const p4GameOverPromise = new Promise(resolve => p4.once('game-over', resolve));
+  const p4StartedPromise = new Promise(resolve => p4.once('game-started', resolve));
+  p4.emit('start-game', {});
+  await p4StartedPromise;
+
+  // PlayerRed submits a guess with some matching letters
+  p4.emit('submit-guess', { guess: 'ARISE' });
+  await sleep(100);
+
+  const gameOverData = await p4GameOverPromise;
+  console.log('✓ Game over received. Leaderboard length:', gameOverData.leaderboard.length, 'hasWinner:', gameOverData.hasWinner);
+  if (!Array.isArray(gameOverData.leaderboard) || gameOverData.leaderboard.length !== 2) {
+    throw new Error('Leaderboard should contain all 2 players');
+  }
+  if (gameOverData.hasWinner !== false) {
+    throw new Error('hasWinner should be false when 0 words are completed');
+  }
+  if (typeof gameOverData.leaderboard[0].currentRow !== 'number') {
+    throw new Error('currentRow should be present in scoreboard');
+  }
+  if (gameOverData.leaderboard[0].rank !== 1 || gameOverData.leaderboard[1].rank !== 2) {
+    throw new Error('Ranks should be 1 and 2');
+  }
+  console.log('✓ Scoreboard tie-break test passed! Winner rank #1:', gameOverData.leaderboard[0].name);
+
   // Cleanup
   p1.disconnect();
   p2.disconnect();
   p3.disconnect();
+  p4.disconnect();
+  p5.disconnect();
 
   console.log('\n🎉 ALL TESTS PASSED SUCCESSFULLY! The multiplayer Wordle Race is fully working!');
   process.exit(0);

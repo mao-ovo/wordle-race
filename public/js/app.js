@@ -837,23 +837,79 @@ socket.on('game-over', (data) => {
   const lb = document.getElementById('leaderboard');
   if (!lb) return;
 
-  lb.innerHTML = data.leaderboard.map((p, idx) => {
+  let list = (data && Array.isArray(data.leaderboard) && data.leaderboard.length > 0)
+    ? data.leaderboard
+    : [];
+
+  // Defensive fallback: ensure scoreboard is NEVER empty
+  if (list.length === 0) {
+    const fallbackList = [{
+      playerId: myId,
+      name: myName || 'Player',
+      avatar: myAvatar || 'terminal',
+      wordsCompleted: wordsCompleted || 0,
+      currentRow: currentRow || 0,
+      bestLettersRight: 0,
+      totalLettersRight: 0,
+      rank: 1
+    }];
+    Object.values(opponents).forEach((op, i) => {
+      fallbackList.push({
+        playerId: op.playerId,
+        name: op.name || 'Player',
+        avatar: op.avatar || 'terminal',
+        wordsCompleted: op.wordsCompleted || 0,
+        currentRow: op.currentRow || 0,
+        bestLettersRight: 0,
+        totalLettersRight: 0,
+        rank: i + 2
+      });
+    });
+    list = fallbackList;
+  }
+
+  const hasWinner = (data && data.hasWinner !== undefined)
+    ? data.hasWinner
+    : list.some(p => p.wordsCompleted > 0);
+
+  lb.innerHTML = list.map((p, idx) => {
     const isMe = p.playerId === myId;
+    const isFirst = (idx === 0);
+    const rowCount = typeof p.currentRow === 'number' ? p.currentRow : 0;
+    const lettersRight = typeof p.bestLettersRight === 'number' ? p.bestLettersRight : 0;
+
+    let statPrimary = '';
+    let statSecondary = '';
+
+    if (hasWinner) {
+      if (p.wordsCompleted > 0) {
+        statPrimary = `<span class="font-semibold text-sm text-zinc-100">${p.wordsCompleted}</span> <span class="text-zinc-400 text-[10px] uppercase font-mono">${p.wordsCompleted === 1 ? 'word' : 'words'}</span>`;
+        statSecondary = `<span class="text-zinc-500 font-mono text-[10px]">Row ${rowCount}/6</span>`;
+      } else {
+        statPrimary = `<span class="font-semibold text-sm text-zinc-400">0</span> <span class="text-zinc-500 text-[10px] uppercase font-mono">words</span>`;
+        statSecondary = `<span class="text-zinc-500 font-mono text-[10px]">${lettersRight > 0 ? `${lettersRight}/5 letters • ` : ''}Row ${rowCount}/6</span>`;
+      }
+    } else {
+      // Nobody completed any words: winner decided by letters guessed right
+      statPrimary = `<span class="font-semibold text-sm ${lettersRight > 0 ? 'text-emerald-400' : 'text-zinc-400'}">${lettersRight}/5</span> <span class="text-zinc-400 text-[10px] uppercase font-mono">letters</span>`;
+      statSecondary = `<span class="text-zinc-500 font-mono text-[10px]">Row ${rowCount}/6</span>`;
+    }
+
     return `
-      <div class="h-10 px-3 rounded-md border ${isMe ? 'border-blue-600/80 bg-blue-950/20' : 'border-zinc-800 bg-zinc-950'} flex items-center justify-between text-xs">
-        <div class="flex items-center gap-2.5">
-          <span class="font-mono font-semibold w-5 ${idx === 0 ? 'text-amber-500' : 'text-zinc-500'}">#${idx + 1}</span>
-          <div class="w-6 h-6 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400">
+      <div class="h-12 px-3 rounded-md border ${isMe ? 'border-blue-600/80 bg-blue-950/20' : 'border-zinc-800 bg-zinc-950'} flex items-center justify-between text-xs">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <span class="font-mono font-semibold w-5 flex-shrink-0 ${isFirst ? 'text-amber-500' : 'text-zinc-500'}">#${p.rank || idx + 1}</span>
+          <div class="w-7 h-7 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 flex-shrink-0">
             ${renderLucideSvg(p.avatar, 14)}
           </div>
-          <div class="flex items-center gap-1.5">
-            <span class="font-medium text-zinc-200">${escapeHtml(p.name)}</span>
-            ${idx === 0 ? `<span class="text-amber-400 inline-flex items-center" title="1st Place Champion">${renderLucideSvg('crown', 14)}</span>` : ''}
+          <div class="flex items-center gap-1.5 min-w-0">
+            <span class="font-medium text-zinc-200 truncate max-w-[110px] sm:max-w-[150px]">${escapeHtml(p.name)}</span>
+            ${isFirst ? `<span class="text-amber-400 inline-flex items-center flex-shrink-0" title="1st Place Champion">${renderLucideSvg('crown', 14)}</span>` : ''}
           </div>
         </div>
-        <div class="font-mono text-zinc-300">
-          <span class="font-semibold text-sm">${p.wordsCompleted}</span>
-          <span class="text-zinc-500 text-[10px]">words</span>
+        <div class="text-right flex-shrink-0 pl-2">
+          <div>${statPrimary}</div>
+          <div>${statSecondary}</div>
         </div>
       </div>
     `;
