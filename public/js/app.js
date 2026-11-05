@@ -23,7 +23,8 @@ const LUCIDE_ICONS = {
   check: '<path d="M20 6 9 17l-5-5"/>',
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
-  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'
+  clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+  lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
 };
 
 function renderLucideSvg(iconName, size = 16) {
@@ -230,7 +231,13 @@ function saveProfile() {
   showToast('Profile updated', 'success');
 }
 
-// ===== SINGLE PLAYER CAMPAIGN (100 LEVELS UNLOCKED) =====
+// Progression lock: Level 1 is open, Level N requires Level N-1 completed
+function isLevelUnlocked(level) {
+  if (level === 1) return true;
+  return spProgress.completedLevels.includes(level - 1);
+}
+
+// ===== SINGLE PLAYER CAMPAIGN (PROGRESSIVE LOCKING) =====
 function buildLevelsGrid(tier = 'all') {
   currentTierFilter = tier;
   const grid = document.getElementById('levels-grid');
@@ -251,17 +258,30 @@ function buildLevelsGrid(tier = 'all') {
   for (let level = minLvl; level <= maxLvl; level++) {
     const card = document.createElement('div');
     card.className = 'level-card';
-    card.textContent = String(level).padStart(2, '0');
 
-    if (spProgress.completedLevels.includes(level)) {
+    const isCompleted = spProgress.completedLevels.includes(level);
+    const isUnlocked = isLevelUnlocked(level);
+
+    if (isCompleted) {
       card.classList.add('completed');
-    }
-    if (level === currentLevel) {
-      card.classList.add('current');
+      card.textContent = String(level).padStart(2, '0');
+    } else if (isUnlocked) {
+      if (level === currentLevel) {
+        card.classList.add('current');
+      }
+      card.textContent = String(level).padStart(2, '0');
+    } else {
+      card.classList.add('locked');
+      card.innerHTML = `<span class="opacity-30">${String(level).padStart(2, '0')}</span><span class="ml-1 opacity-40">${renderLucideSvg('lock', 11)}</span>`;
     }
 
-    // ALL 100 levels are unlocked and playable anytime!
-    card.addEventListener('click', () => startSinglePlayerLevel(level));
+    card.addEventListener('click', () => {
+      if (!isUnlocked) {
+        showToast(`Complete Level ${level - 1} to unlock Level ${level}`, 'error');
+        return;
+      }
+      startSinglePlayerLevel(level);
+    });
     grid.appendChild(card);
   }
 }
@@ -274,6 +294,11 @@ function getDifficultyForLevel(level) {
 }
 
 function startSinglePlayerLevel(level) {
+  if (!isLevelUnlocked(level)) {
+    showToast(`Complete Level ${level - 1} to unlock Level ${level}`, 'error');
+    return;
+  }
+
   currentLevel = level;
   gameMode = 'sp';
 
@@ -857,7 +882,7 @@ socket.on('sp-level-failed', (data) => {
   }
 
   document.getElementById('sp-modal-title').textContent = 'Level Failed';
-  document.getElementById('sp-modal-message').textContent = `The answer was: ${data.answer.toUpperCase()}`;
+  document.getElementById('sp-modal-message').textContent = `The word was ${data.answer.toUpperCase()}`;
 
   const actionBtn = document.getElementById('sp-modal-action');
   actionBtn.textContent = 'Retry Level';

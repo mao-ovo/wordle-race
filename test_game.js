@@ -97,21 +97,38 @@ async function runTests() {
   const oppUpdate = await p2SawOpponentUpdate;
   console.log('✓ Player 2 received opponent update:', oppUpdate.name, 'row:', oppUpdate.currentRow);
 
-  // 6. Test Single Player
+  // 6. Test Single Player & Failed Word Replacement
   console.log('Testing Single Player mode...');
   const p3 = io(SERVER_URL);
   await new Promise(res => p3.on('connect', res));
   
-  const spReadyPromise = new Promise(resolve => p3.on('sp-ready', resolve));
+  // Start level 1
+  let spReadyPromise = new Promise(resolve => p3.once('sp-ready', resolve));
   p3.emit('sp-start', { level: 1 });
-  const spReady = await spReadyPromise;
+  let spReady = await spReadyPromise;
   console.log('✓ Single player level 1 ready:', spReady.level);
 
-  // Guess level 1 word (which is 'HOUSE')
-  const spCompletePromise = new Promise(resolve => p3.on('sp-level-complete', resolve));
-  p3.emit('sp-guess', { guess: 'HOUSE' });
-  const spComplete = await spCompletePromise;
-  console.log('✓ Single player level complete for level:', spComplete.level);
+  // Submit 6 wrong guesses to fail level 1
+  const failPromise = new Promise(resolve => p3.once('sp-level-failed', resolve));
+  const wrongWords = ['PLANT', 'LIGHT', 'BRAIN', 'SMILE', 'WORLD', 'CHAIR'];
+  for (const w of wrongWords) {
+    p3.emit('sp-guess', { guess: w });
+    await sleep(50);
+  }
+  const failResult = await failPromise;
+  console.log('✓ Level 1 failed as expected. Word was:', failResult.answer);
+
+  // Retry level 1 - verify new word is DIFFERENT from failed word
+  spReadyPromise = new Promise(resolve => p3.once('sp-ready', resolve));
+  p3.emit('sp-start', { level: 1 });
+  spReady = await spReadyPromise;
+  
+  // If we guess the previous failed answer, it should NOT be correct
+  const retryGuessPromise = new Promise(resolve => p3.once('sp-guess-result', resolve));
+  p3.emit('sp-guess', { guess: failResult.answer });
+  const retryResult = await retryGuessPromise;
+  console.log('✓ Old answer guess on retry was not correct (new word given!): isCorrect =', retryResult.isCorrect);
+  if (retryResult.isCorrect) throw new Error('Retry must have a different word');
 
   // Cleanup
   p1.disconnect();

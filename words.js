@@ -1042,10 +1042,70 @@ const VALID_GUESSES = new Set(cleanGuesses);
 LEVELS.forEach(w => VALID_GUESSES.add(w));
 MULTIPLAYER_POOL.forEach(w => VALID_GUESSES.add(w));
 
+// Tier-specific word pools for fresh alternate words on failed retries
+const TIER_1_WORDS = [
+  ...LEVELS.slice(0, 20),
+  "APPLE", "RIVER", "NIGHT", "POWER", "TRAIN", "SLEEP", "TABLE", "CLEAN",
+  "MAGIC", "WHITE", "BLACK", "WOMAN", "SMART", "PEACE", "SHARP", "WHEEL",
+  "FRESH", "PLATE", "HORSE", "SUGAR", "OCEAN", "MONEY", "GREEN", "SPACE",
+  "QUEEN", "NOISE", "SWEET", "FIELD", "TOWER", "EAGLE", "SNAKE", "CROWN"
+];
+
+const TIER_2_WORDS = [
+  ...LEVELS.slice(20, 50),
+  "BLOCK", "DRIVE", "FEAST", "WASTE", "THICK", "QUIET", "GLOBE", "VERSE",
+  "STICK", "FLOCK", "VOCAL", "RAPID", "DODGE", "FAIRY", "METAL", "CORAL",
+  "DEMON", "CLASH", "SPICE", "MOOSE", "SPINE", "PIANO", "SALAD", "MAPLE",
+  "LUNAR", "RADAR", "CARGO", "EXILE", "WITCH", "SOLAR", "GRILL", "TEETH",
+  "KNOCK", "COUCH", "CHARM", "VIRUS", "RANCH", "BLOOM", "BRACE", "SCOUT"
+];
+
+const TIER_3_WORDS = [
+  ...LEVELS.slice(50, 75),
+  "CLOWN", "FLUTE", "IVORY", "BADGE", "PANDA", "CIDER", "SALSA", "ARENA",
+  "SCARF", "RIDGE", "DIARY", "PAUSE", "DOUGH", "DRIFT", "RAVEN", "SKATE",
+  "PEDAL", "COMET", "PIXEL", "TORCH", "VAULT", "TULIP", "MOTEL", "STUMP",
+  "CABIN", "ORBIT", "PATCH", "BONUS", "LEASH", "PRISM", "MURAL", "SIREN"
+];
+
+const TIER_4_WORDS = [
+  ...LEVELS.slice(75, 100),
+  "YACHT", "BOXER", "LATCH", "CRISP", "PORCH", "DECOY", "SWAMP", "CREST",
+  "BRAWL", "FLINT", "STAIN", "GLARE", "HATCH", "CHOIR", "PLUME", "ZEBRA",
+  "SHALE", "DRAPE", "GOOSE", "ROAST", "JEWEL", "NINJA", "SAUNA", "THORN",
+  "MELON", "CAMEL", "SHRUB", "QUILT", "PLANK", "STOVE", "CLERK", "SPEAR"
+];
+
+function getWordForLevel(level, excludeWords = []) {
+  const normExcludes = new Set((excludeWords || []).map(w => String(w).toUpperCase()));
+  const defaultWord = LEVELS[level - 1];
+
+  // If default word not yet excluded, use it
+  if (defaultWord && !normExcludes.has(defaultWord)) {
+    return defaultWord;
+  }
+
+  // Otherwise pick a fresh alternate word from that level's difficulty tier
+  let tierPool;
+  if (level <= 20) tierPool = TIER_1_WORDS;
+  else if (level <= 50) tierPool = TIER_2_WORDS;
+  else if (level <= 75) tierPool = TIER_3_WORDS;
+  else tierPool = TIER_4_WORDS;
+
+  const available = tierPool.filter(w => !normExcludes.has(w));
+  if (available.length > 0) {
+    return available[Math.floor(Math.random() * available.length)];
+  }
+
+  // Fallback to any valid guess not in excluded
+  const fallback = cleanGuesses.find(w => !normExcludes.has(w));
+  return fallback || defaultWord;
+}
+
 module.exports = {
   LEVELS,
   MULTIPLAYER_POOL,
-  getWordForLevel: (level) => LEVELS[level - 1],
+  getWordForLevel,
   getMultiplayerWords: (count) => {
     const shuffled = [...MULTIPLAYER_POOL].sort(() => Math.random() - 0.5);
     return shuffled.slice(0, count);

@@ -215,6 +215,20 @@
   color: #60a5fa;
 }
 
+.level-card.locked {
+  background-color: #09090b !important;
+  border-color: #1c1c20 !important;
+  color: #52525b !important;
+  cursor: not-allowed;
+}
+
+.level-card.locked:hover {
+  background-color: #09090b !important;
+  border-color: #1c1c20 !important;
+  color: #52525b !important;
+}
+}
+
 /* ========================================================
    MODALS & OVERLAYS
    ======================================================== */

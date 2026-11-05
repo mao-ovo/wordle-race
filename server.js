@@ -175,6 +175,7 @@ io.on('connection', (socket) => {
     spWord: '',
     spRow: 0,
     spGuesses: [],
+    spExcludedWords: {},
     // Multiplayer race state
     mpWordIndex: 0,
     mpRow: 0,
@@ -507,7 +508,9 @@ io.on('connection', (socket) => {
     if (!player) return;
 
     const level = Math.max(1, Math.min(100, parseInt(data.level) || 1));
-    const word = words.getWordForLevel(level);
+    if (!player.spExcludedWords) player.spExcludedWords = {};
+    const excluded = player.spExcludedWords[level] || [];
+    const word = words.getWordForLevel(level, excluded);
 
     if (!word) {
       return socket.emit('error', { message: 'Level word not found' });
@@ -549,12 +552,19 @@ io.on('connection', (socket) => {
     });
 
     if (isCorrect) {
+      if (player.spExcludedWords && player.spExcludedWords[player.spLevel]) {
+        delete player.spExcludedWords[player.spLevel];
+      }
       socket.emit('sp-level-complete', {
         level: player.spLevel
       });
     } else {
       player.spRow++;
       if (player.spRow >= 6) {
+        if (!player.spExcludedWords) player.spExcludedWords = {};
+        if (!player.spExcludedWords[player.spLevel]) player.spExcludedWords[player.spLevel] = [];
+        player.spExcludedWords[player.spLevel].push(answer);
+
         socket.emit('sp-level-failed', {
           level: player.spLevel,
           answer: answer
