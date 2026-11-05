@@ -25,7 +25,9 @@ const LUCIDE_ICONS = {
   copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
   lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
-  crown: '<path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>'
+  crown: '<path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>',
+  messageSquare: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+  send: '<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>'
 };
 
 function renderLucideSvg(iconName, size = 16) {
@@ -616,6 +618,99 @@ function renderPlayerList() {
   }
 }
 
+// ===== ROOM CHAT SYSTEM =====
+let roomChatHistory = [];
+
+function createChatMessageElement(msg) {
+  const el = document.createElement('div');
+
+  if (msg.isSystem) {
+    el.className = 'text-center my-1';
+    el.innerHTML = `
+      <span class="inline-block px-2 py-0.5 rounded text-[10px] text-zinc-500 font-mono bg-zinc-900/60 border border-zinc-800/80">
+        ${escapeHtml(msg.message)}
+      </span>
+    `;
+    return el;
+  }
+
+  const isMe = (msg.senderId === myId);
+  el.className = `flex items-start gap-2 ${isMe ? 'flex-row-reverse text-right' : ''}`;
+  el.innerHTML = `
+    <div class="w-5 h-5 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400 flex-shrink-0 mt-0.5">
+      ${renderLucideSvg(msg.senderAvatar || 'terminal', 12)}
+    </div>
+    <div class="max-w-[82%] ${isMe ? 'items-end' : 'items-start'} flex flex-col">
+      <div class="flex items-center gap-1.5 mb-0.5">
+        <span class="text-[11px] font-medium text-zinc-300 font-sans">${escapeHtml(msg.senderName)}</span>
+        <span class="text-[9px] text-zinc-500 font-mono">${escapeHtml(msg.time || '')}</span>
+      </div>
+      <div class="px-2.5 py-1.5 rounded-md text-xs leading-relaxed ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-zinc-900 border border-zinc-800 text-zinc-200 rounded-tl-none'} break-words text-left">
+        ${escapeHtml(msg.message)}
+      </div>
+    </div>
+  `;
+  return el;
+}
+
+function appendChatMessage(msg) {
+  roomChatHistory.push(msg);
+
+  const containers = [
+    document.getElementById('lobby-chat-messages'),
+    document.getElementById('results-chat-messages')
+  ];
+
+  containers.forEach(container => {
+    if (!container) return;
+    const msgEl = createChatMessageElement(msg);
+    container.appendChild(msgEl);
+    container.scrollTop = container.scrollHeight;
+  });
+
+  if (msg.senderId !== myId && !msg.isSystem) {
+    sounds.play('tap');
+  }
+}
+
+function loadRoomChat(history) {
+  roomChatHistory = Array.isArray(history) ? history : [];
+  const containers = [
+    document.getElementById('lobby-chat-messages'),
+    document.getElementById('results-chat-messages')
+  ];
+
+  containers.forEach(container => {
+    if (!container) return;
+    container.innerHTML = '';
+    if (roomChatHistory.length === 0) {
+      const welcome = document.createElement('div');
+      welcome.className = 'text-[11px] text-zinc-500 font-mono text-center py-2';
+      welcome.textContent = container.id === 'results-chat-messages'
+        ? 'Match concluded! Chat with your opponents.'
+        : 'Welcome to room chat. Say hello to your friends!';
+      container.appendChild(welcome);
+    } else {
+      roomChatHistory.forEach(msg => {
+        container.appendChild(createChatMessageElement(msg));
+      });
+      container.scrollTop = container.scrollHeight;
+    }
+  });
+}
+
+function sendRoomChatMessage(inputElement) {
+  if (!inputElement) return;
+  const text = inputElement.value.trim();
+  if (!text) return;
+  if (!roomCode) {
+    showToast('Not in a private room', 'error');
+    return;
+  }
+  socket.emit('send-room-chat', { message: text });
+  inputElement.value = '';
+}
+
 function showCountdown(count) {
   const overlay = document.getElementById('countdown-overlay');
   const numberEl = document.getElementById('countdown-number');
@@ -674,6 +769,7 @@ socket.on('room-created', (data) => {
   document.getElementById('lobby-code').textContent = roomCode;
   document.getElementById('lobby-time').textContent = formatTime(timeLimit);
   renderPlayerList();
+  loadRoomChat(data.chatHistory || []);
   showView('lobby-view');
 });
 
@@ -691,7 +787,12 @@ socket.on('room-joined', (data) => {
   document.getElementById('lobby-code').textContent = roomCode;
   document.getElementById('lobby-time').textContent = formatTime(timeLimit);
   renderPlayerList();
+  loadRoomChat(data.chatHistory || []);
   showView('lobby-view');
+});
+
+socket.on('room-chat-message', (data) => {
+  appendChatMessage(data);
 });
 
 socket.on('player-joined', (data) => {
@@ -1098,6 +1199,7 @@ document.addEventListener('DOMContentLoaded', () => {
     isHost = false;
     isReady = false;
     players = {};
+    loadRoomChat([]);
     readyBtn.textContent = 'Mark Ready';
     readyBtn.className = 'h-9 px-4 rounded-md border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-xs font-medium text-zinc-200 transition-colors';
     showView('mp-menu-view');
@@ -1115,13 +1217,34 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   document.getElementById('results-home-btn').addEventListener('click', () => {
+    socket.emit('leave-room', {});
     roomCode = null;
     isHost = false;
     isReady = false;
     players = {};
     gameMode = null;
+    loadRoomChat([]);
     showView('home-view');
   });
+
+  // Room Chat Form Handlers
+  const lobbyChatForm = document.getElementById('lobby-chat-form');
+  const lobbyChatInput = document.getElementById('lobby-chat-input');
+  if (lobbyChatForm && lobbyChatInput) {
+    lobbyChatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      sendRoomChatMessage(lobbyChatInput);
+    });
+  }
+
+  const resultsChatForm = document.getElementById('results-chat-form');
+  const resultsChatInput = document.getElementById('results-chat-input');
+  if (resultsChatForm && resultsChatInput) {
+    resultsChatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      sendRoomChatMessage(resultsChatInput);
+    });
+  }
 
   document.getElementById('sp-prev-btn')?.addEventListener('click', () => {
     if (currentLevel > 1) {

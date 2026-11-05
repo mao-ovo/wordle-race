@@ -55,6 +55,17 @@ async function runTests() {
   console.log('✓ Player 2 successfully joined room. Total players:', p2Room.players.length);
   if (p2Room.players.length !== 2) throw new Error('Expected 2 players in room');
 
+  // Test Room Chat
+  const p2SawChatMessage = new Promise(resolve => {
+    p2.on('room-chat-message', msg => {
+      if (!msg.isSystem && msg.message === 'Good luck in the race!') resolve(msg);
+    });
+  });
+  p1.emit('send-room-chat', { message: 'Good luck in the race!' });
+  const chatReceived = await p2SawChatMessage;
+  console.log('✓ Room chat verified: Player 2 received message from', chatReceived.senderName);
+  if (chatReceived.senderName !== 'Alice') throw new Error('Expected sender Alice');
+
   // 3. Test Ready toggle
   const readyPromise = new Promise(resolve => {
     p1.on('ready-update', resolve);

@@ -214,6 +214,18 @@ function leaveRoom(socketId) {
     newHostId: room.hostId
   });
 
+  if (player.name) {
+    const leaveMsg = {
+      id: 'sys_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      isSystem: true,
+      message: `${player.name} left the room`,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: Date.now()
+    };
+    if (room.chatHistory) room.chatHistory.push(leaveMsg);
+    io.to(roomCode).emit('room-chat-message', leaveMsg);
+  }
+
   // If game was playing and no one or only 1 player remains, check if we need to end
   if (room.status === 'playing' && room.playerIds.size === 0) {
     endGame(roomCode);
@@ -283,7 +295,8 @@ io.on('connection', (socket) => {
       wordSequence: [],
       timer: null,
       countdownTimer: null,
-      remainingTime: timeLimit
+      remainingTime: timeLimit,
+      chatHistory: []
     };
 
     rooms[roomCode] = room;
@@ -294,6 +307,7 @@ io.on('connection', (socket) => {
 
     socket.emit('room-created', {
       roomCode: roomCode,
+      chatHistory: room.chatHistory,
       player: {
         playerId: socket.id,
         name: player.name,
@@ -340,7 +354,8 @@ io.on('connection', (socket) => {
       roomCode: code,
       players: playerList,
       timeLimit: room.timeLimit,
-      hostId: room.hostId
+      hostId: room.hostId,
+      chatHistory: room.chatHistory || []
     });
 
     socket.to(code).emit('player-joined', {
@@ -352,6 +367,48 @@ io.on('connection', (socket) => {
         isHost: false
       }
     });
+
+    const joinMsg = {
+      id: 'sys_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      isSystem: true,
+      message: `${player.name} joined the room`,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: Date.now()
+    };
+    if (!room.chatHistory) room.chatHistory = [];
+    room.chatHistory.push(joinMsg);
+    io.to(code).emit('room-chat-message', joinMsg);
+  });
+
+  // Send Room Chat Message
+  socket.on('send-room-chat', (data) => {
+    const player = players[socket.id];
+    if (!player || !player.roomCode) return;
+
+    const room = rooms[player.roomCode];
+    if (!room) return;
+
+    if (!data || typeof data.message !== 'string') return;
+    const text = data.message.trim();
+    if (!text || text.length > 200) return;
+
+    const chatMsg = {
+      id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      senderId: socket.id,
+      senderName: player.name || 'Player',
+      senderAvatar: player.avatar || 'terminal',
+      message: text,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      timestamp: Date.now()
+    };
+
+    if (!room.chatHistory) room.chatHistory = [];
+    room.chatHistory.push(chatMsg);
+    if (room.chatHistory.length > 50) {
+      room.chatHistory.shift();
+    }
+
+    io.to(player.roomCode).emit('room-chat-message', chatMsg);
   });
 
   // Toggle ready status

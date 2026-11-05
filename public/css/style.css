@@ -325,6 +325,21 @@ button, .key, .keyboard, .keyboard-row, .modal-card, .btn-action {
   color: #f87171;
 }
 
+/* Room Chat Scrollbars */
+#lobby-chat-messages::-webkit-scrollbar,
+#results-chat-messages::-webkit-scrollbar {
+  width: 4px;
+}
+#lobby-chat-messages::-webkit-scrollbar-track,
+#results-chat-messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+#lobby-chat-messages::-webkit-scrollbar-thumb,
+#results-chat-messages::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 4px;
+}
+
 /* Mobile Adjustments */
 @media (max-width: 640px) {
   .board-row {
