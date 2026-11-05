@@ -404,10 +404,15 @@ function buildKeyboard(prefix) {
     row.className = 'keyboard-row';
     rowKeys.forEach(key => {
       const btn = document.createElement('button');
+      btn.type = 'button';
       btn.className = 'key' + (key === 'ENTER' || key === 'DEL' ? ' wide' : '');
       btn.textContent = key;
       btn.id = `${prefix}-key-${key}`;
-      btn.addEventListener('click', () => handleKeyPress(key));
+      btn.setAttribute('aria-label', key);
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        handleKeyPress(key);
+      });
       row.appendChild(btn);
     });
     container.appendChild(row);
@@ -1075,6 +1080,11 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   updateTimeDisplay();
+
+  // Prevent browser double-click zoom or selection on rapid mobile taps (e.g. DEL key)
+  document.addEventListener('dblclick', (e) => {
+    e.preventDefault();
+  }, { passive: false });
 
   document.addEventListener('click', () => {
     sounds.init();

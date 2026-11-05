@@ -3,6 +3,20 @@
    Strict adherence to Zero-Slop Rules & Neutral-first Palette
    ======================================================== */
 
+/* Touch & Mobile Optimizations (Prevents double-tap zoom & removes tap latency) */
+html, body {
+  touch-action: manipulation;
+  -webkit-text-size-adjust: 100%;
+}
+
+button, .key, .keyboard, .keyboard-row, .modal-card, .btn-action {
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* View Switching */
 .view {
   display: none;
@@ -135,6 +149,11 @@
   cursor: pointer;
   transition: background-color 0.1s ease, transform 0.05s ease;
   padding: 0 4px;
+  touch-action: manipulation;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .key:hover {
