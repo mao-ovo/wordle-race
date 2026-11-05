@@ -189,9 +189,9 @@ function updateProfilePreview() {
   if (preview) {
     preview.innerHTML = renderLucideSvg(profile.avatar, 20);
   }
-  const callsignEl = document.getElementById('callsign-preview');
-  if (callsignEl) {
-    callsignEl.textContent = (profile.name || 'PLAYER').toUpperCase();
+  const nicknameEl = document.getElementById('nickname-preview');
+  if (nicknameEl) {
+    nicknameEl.textContent = (profile.name || 'PLAYER').toUpperCase();
   }
 }
 
@@ -286,6 +286,39 @@ function buildLevelsGrid(tier = 'all') {
   }
 }
 
+function updateSinglePlayerNav() {
+  const prevBtn = document.getElementById('sp-prev-btn');
+  const nextBtn = document.getElementById('sp-next-btn');
+  const statusEl = document.getElementById('sp-level-status');
+  const retryBtn = document.getElementById('sp-retry-btn');
+
+  if (prevBtn) {
+    prevBtn.disabled = (currentLevel <= 1);
+  }
+
+  if (nextBtn) {
+    const nextUnlocked = (currentLevel < 100) && isLevelUnlocked(currentLevel + 1);
+    nextBtn.disabled = !nextUnlocked;
+    if (nextUnlocked && !spProgress.completedLevels.includes(currentLevel + 1)) {
+      nextBtn.className = 'h-8 px-3 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer';
+    } else {
+      nextBtn.className = 'h-8 px-3 rounded-md border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-xs font-medium text-zinc-300 disabled:opacity-30 disabled:pointer-events-none flex items-center gap-1.5 transition-colors';
+    }
+  }
+
+  if (statusEl) {
+    if (spProgress.completedLevels.includes(currentLevel)) {
+      statusEl.innerHTML = '<span class="text-green-500 font-medium">✓ Solved</span>';
+    } else {
+      statusEl.textContent = '';
+    }
+  }
+
+  if (retryBtn) {
+    retryBtn.classList.add('hidden');
+  }
+}
+
 function getDifficultyForLevel(level) {
   if (level <= 20) return 'NOVICE';
   if (level <= 50) return 'ADEPT';
@@ -308,6 +341,7 @@ function startSinglePlayerLevel(level) {
 
   clearAnimationTimeouts();
   resetBoard('sp');
+  updateSinglePlayerNav();
   socket.emit('sp-start', { level });
   showView('sp-game-view');
 }
@@ -843,61 +877,53 @@ socket.on('sp-level-complete', (data) => {
   localStorage.setItem('wordle-race-sp', JSON.stringify(spProgress));
   sounds.play('levelUp');
 
-  const modal = document.getElementById('sp-modal');
-  const crest = document.getElementById('sp-modal-crest');
-  if (crest) {
-    crest.innerHTML = `<span class="text-green-500">${renderLucideSvg('check', 20)}</span>`;
+  showFeedbackBanner(`Level ${level} Solved!`, true);
+  updateSinglePlayerNav();
+
+  const statusEl = document.getElementById('sp-level-status');
+  if (statusEl) {
+    statusEl.innerHTML = '<span class="text-green-500 font-semibold">✓ Solved</span>';
   }
-  document.getElementById('sp-modal-title').textContent = `Level ${level} Solved`;
-  document.getElementById('sp-modal-message').textContent = 'Target word confirmed and cleared.';
 
-  const actionBtn = document.getElementById('sp-modal-action');
-  actionBtn.textContent = level < 100 ? 'Next Level' : 'Campaign Complete';
-  actionBtn.onclick = () => {
-    modal.classList.remove('active');
-    if (level < 100) {
-      startSinglePlayerLevel(level + 1);
-    } else {
-      buildLevelsGrid(currentTierFilter);
-      showView('sp-levels-view');
+  // Auto-advance to next level after 1.2s if available
+  if (level < 100) {
+    const nextBtn = document.getElementById('sp-next-btn');
+    if (nextBtn) {
+      nextBtn.disabled = false;
+      nextBtn.className = 'h-8 px-3 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer';
     }
-  };
-
-  document.getElementById('sp-modal-secondary').onclick = () => {
-    modal.classList.remove('active');
-    buildLevelsGrid(currentTierFilter);
-    showView('sp-levels-view');
-  };
-
-  modal.classList.add('active');
+    setTimeout(() => {
+      if (currentView === 'sp-game-view' && currentLevel === level) {
+        startSinglePlayerLevel(level + 1);
+      }
+    }, 1200);
+  }
 });
 
 socket.on('sp-level-failed', (data) => {
   sounds.play('wrong');
 
-  const modal = document.getElementById('sp-modal');
-  const crest = document.getElementById('sp-modal-crest');
-  if (crest) {
-    crest.innerHTML = `<span class="text-red-500">${renderLucideSvg('x', 20)}</span>`;
+  showFeedbackBanner(`The word was ${data.answer.toUpperCase()}`, false);
+
+  const statusEl = document.getElementById('sp-level-status');
+  if (statusEl) {
+    statusEl.innerHTML = '<span class="text-red-400 font-medium">Failed</span>';
   }
 
-  document.getElementById('sp-modal-title').textContent = 'Level Failed';
-  document.getElementById('sp-modal-message').textContent = `The word was ${data.answer.toUpperCase()}`;
+  const retryBtn = document.getElementById('sp-retry-btn');
+  if (retryBtn) {
+    retryBtn.classList.remove('hidden');
+    retryBtn.onclick = () => {
+      startSinglePlayerLevel(data.level);
+    };
+  }
 
-  const actionBtn = document.getElementById('sp-modal-action');
-  actionBtn.textContent = 'Retry Level';
-  actionBtn.onclick = () => {
-    modal.classList.remove('active');
-    startSinglePlayerLevel(data.level);
-  };
-
-  document.getElementById('sp-modal-secondary').onclick = () => {
-    modal.classList.remove('active');
-    buildLevelsGrid(currentTierFilter);
-    showView('sp-levels-view');
-  };
-
-  modal.classList.add('active');
+  // Auto-restart with fresh word after 2.0s
+  setTimeout(() => {
+    if (currentView === 'sp-game-view' && currentLevel === data.level) {
+      startSinglePlayerLevel(data.level);
+    }
+  }, 2000);
 });
 
 // ===== INITIALIZATION =====
@@ -1029,9 +1055,15 @@ document.addEventListener('DOMContentLoaded', () => {
     showView('home-view');
   });
 
-  document.getElementById('sp-modal').addEventListener('click', (e) => {
-    if (e.target.classList.contains('modal-overlay')) {
-      e.target.classList.remove('active');
+  document.getElementById('sp-prev-btn')?.addEventListener('click', () => {
+    if (currentLevel > 1) {
+      startSinglePlayerLevel(currentLevel - 1);
+    }
+  });
+
+  document.getElementById('sp-next-btn')?.addEventListener('click', () => {
+    if (currentLevel < 100 && isLevelUnlocked(currentLevel + 1)) {
+      startSinglePlayerLevel(currentLevel + 1);
     }
   });
 
