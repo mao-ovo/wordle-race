@@ -24,7 +24,8 @@ const LUCIDE_ICONS = {
   x: '<path d="M18 6 6 18"/><path d="m6 6 12 12"/>',
   copy: '<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
   clock: '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
-  lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>'
+  lock: '<rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>',
+  crown: '<path d="m2 4 3 12h14l3-12-6 7-4-7-4 7-6-7zm3 16h14"/>'
 };
 
 function renderLucideSvg(iconName, size = 16) {
@@ -308,7 +309,7 @@ function updateSinglePlayerNav() {
 
   if (statusEl) {
     if (spProgress.completedLevels.includes(currentLevel)) {
-      statusEl.innerHTML = '<span class="text-green-500 font-medium">✓ Solved</span>';
+      statusEl.innerHTML = `<span class="inline-flex items-center gap-1 text-emerald-500 font-medium">${renderLucideSvg('check', 12)} Solved</span>`;
     } else {
       statusEl.textContent = '';
     }
@@ -560,7 +561,10 @@ function updateOpponents() {
             ${renderLucideSvg(p.avatar, 14)}
           </div>
           <div>
-            <span class="font-medium text-zinc-200 block truncate max-w-[90px]">${escapeHtml(p.name)}</span>
+            <div class="flex items-center gap-1">
+              <span class="font-medium text-zinc-200 block truncate max-w-[90px]">${escapeHtml(p.name)}</span>
+              ${idx === 0 && p.wordsCompleted > 0 ? `<span class="text-amber-400 inline-flex items-center flex-shrink-0" title="Leader">${renderLucideSvg('crown', 12)}</span>` : ''}
+            </div>
             <span class="text-[10px] text-zinc-500 font-mono">Row ${p.currentRow + 1}/6</span>
           </div>
         </div>
@@ -837,7 +841,10 @@ socket.on('game-over', (data) => {
           <div class="w-6 h-6 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-400">
             ${renderLucideSvg(p.avatar, 14)}
           </div>
-          <span class="font-medium text-zinc-200">${escapeHtml(p.name)}</span>
+          <div class="flex items-center gap-1.5">
+            <span class="font-medium text-zinc-200">${escapeHtml(p.name)}</span>
+            ${idx === 0 ? `<span class="text-amber-400 inline-flex items-center" title="1st Place Champion">${renderLucideSvg('crown', 14)}</span>` : ''}
+          </div>
         </div>
         <div class="font-mono text-zinc-300">
           <span class="font-semibold text-sm">${p.wordsCompleted}</span>
@@ -882,7 +889,7 @@ socket.on('sp-level-complete', (data) => {
 
   const statusEl = document.getElementById('sp-level-status');
   if (statusEl) {
-    statusEl.innerHTML = '<span class="text-green-500 font-semibold">✓ Solved</span>';
+    statusEl.innerHTML = `<span class="inline-flex items-center gap-1 text-emerald-500 font-semibold">${renderLucideSvg('check', 12)} Solved</span>`;
   }
 
   // Auto-advance to next level after 1.2s if available
