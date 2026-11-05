@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Wordle Race</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            border: '#27272a',
+            background: '#09090b',
+            foreground: '#f4f4f5',
+            primary: {
+              DEFAULT: '#2563eb',
+              hover: '#1d4ed8',
+              foreground: '#ffffff',
+            },
+            muted: {
+              DEFAULT: '#18181b',
+              foreground: '#71717a',
+            },
+            card: {
+              DEFAULT: '#18181b',
+              border: '#27272a',
+            },
+            wordle: {
+              correct: '#16a34a',
+              present: '#ca8a04',
+              absent: '#27272a',
+              empty: '#09090b',
+              border: '#27272a',
+              filled: '#52525b',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body class="bg-zinc-950 text-zinc-100 font-sans antialiased min-h-screen selection:bg-blue-600/30 selection:text-white">
+
+  <!-- COMPACT TOP NAVIGATION BAR -->
+  <header class="h-12 border-b border-zinc-800 bg-zinc-950/80 backdrop-blur sticky top-0 z-40 px-4 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-6 h-6 rounded bg-zinc-900 border border-zinc-800 flex items-center justify-center text-blue-500 font-mono text-xs font-semibold">
+        W
+      </div>
+      <span class="text-sm font-semibold tracking-tight text-zinc-200">Wordle Race</span>
+      <span class="text-xs px-2 py-0.5 rounded-full border border-zinc-800 bg-zinc-900 text-zinc-400 font-mono">v1.2</span>
+    </div>
+
+    <div class="flex items-center gap-3">
+      <button id="home-profile" class="h-8 px-2.5 rounded-md border border-zinc-800 bg-zinc-900 hover:bg-zinc-800/80 transition-colors flex items-center gap-2 text-xs font-medium text-zinc-200" title="Edit Profile">
+        <div id="home-avatar-container" class="w-5 h-5 rounded flex items-center justify-center text-zinc-400"></div>
+        <span id="home-name" class="font-mono text-xs text-zinc-300">PLAYER</span>
+        <svg class="w-3.5 h-3.5 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m18 15-6-6-6 6"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- MAIN CONTAINER -->
+  <main class="max-w-4xl mx-auto p-4 sm:p-6 min-h-[calc(100vh-3rem)] flex flex-col justify-center">
+
+    <!-- 1. HOME VIEW -->
+    <section class="view active" id="home-view">
+      <div class="max-w-xl mx-auto py-8">
+        <div class="text-center mb-8">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-zinc-800 bg-zinc-900 text-xs text-zinc-400 mb-4">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+            <span>colli needs to stop vaping</span>
+          </div>
+          <h1 class="text-2xl sm:text-3xl font-semibold tracking-tight text-zinc-100 mb-2">Wordle Race</h1>
+          <p class="text-sm text-zinc-400 font-mono">Ebi is a roblox wordle hacker</p>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Single Player Card -->
+          <div id="sp-btn" class="group rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-zinc-700 p-5 transition-all cursor-pointer flex flex-col justify-between">
+            <div>
+              <div class="w-9 h-9 rounded-md border border-zinc-800 bg-zinc-950 flex items-center justify-center text-zinc-300 mb-4 group-hover:text-blue-400 transition-colors">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              </div>
+              <h2 class="text-base font-semibold text-zinc-100 mb-1">Single Player</h2>
+              <p class="text-xs text-zinc-400 leading-relaxed mb-6">100 levels with increasing difficulty. Open access — jump to any level anytime.</p>
+            </div>
+            <div class="flex items-center justify-between text-xs font-medium text-zinc-400 group-hover:text-zinc-200 transition-colors pt-3 border-t border-zinc-800/60">
+              <span>Enter Campaign</span>
+              <svg class="w-4 h-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </div>
+          </div>
+
+          <!-- Multiplayer Card -->
+          <div id="mp-btn" class="group rounded-lg border border-zinc-800 bg-zinc-900/60 hover:bg-zinc-900 hover:border-zinc-700 p-5 transition-all cursor-pointer flex flex-col justify-between">
+            <div>
+              <div class="w-9 h-9 rounded-md border border-zinc-800 bg-zinc-950 flex items-center justify-center text-zinc-300 mb-4 group-hover:text-blue-400 transition-colors">
+                <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+              </div>
+              <h2 class="text-base font-semibold text-zinc-100 mb-1">Multiplayer Race</h2>
+              <p class="text-xs text-zinc-400 leading-relaxed mb-6">Create a private room with up to 10 friends. Customizable timer and live speed leaderboard.</p>
+            </div>
+            <div class="flex items-center justify-between text-xs font-medium text-zinc-400 group-hover:text-zinc-200 transition-colors pt-3 border-t border-zinc-800/60">
+              <span>Create / Join Arena</span>
+              <svg class="w-4 h-4 transition-transform group-hover:translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. PROFILE VIEW -->
+    <section class="view" id="profile-view">
+      <div class="max-w-md mx-auto rounded-lg border border-zinc-800 bg-zinc-900 p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-zinc-800">
+          <button class="back-btn h-8 w-8 rounded-md border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 transition-colors flex items-center justify-center text-zinc-400 hover:text-zinc-100" data-target="home-view">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div>
+            <h2 class="text-base font-semibold text-zinc-100">Player Profile</h2>
+            <p class="text-xs text-zinc-400">Configure your callsign and avatar</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-4 p-3 rounded-md bg-zinc-950 border border-zinc-800 mb-5">
+          <div id="avatar-live-preview" class="w-10 h-10 rounded-md bg-zinc-900 border border-zinc-700 flex items-center justify-center text-blue-400"></div>
+          <div>
+            <span id="callsign-preview" class="font-mono text-sm font-semibold text-zinc-200 block">PLAYER</span>
+            <span class="text-xs text-zinc-500">Ready for competition</span>
+          </div>
+        </div>
+
+        <div class="space-y-4 mb-6">
+          <div>
+            <label class="block text-xs font-medium text-zinc-300 mb-1.5" for="profile-name-input">Callsign</label>
+            <input id="profile-name-input" type="text" maxlength="15" placeholder="Enter callsign" class="h-9 w-full rounded-md border border-zinc-800 bg-zinc-950 px-3 text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none focus:border-blue-600 font-mono">
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-zinc-300 mb-2">Insignia</label>
+            <div class="grid grid-cols-6 gap-2" id="avatar-grid"></div>
+          </div>
+        </div>
+
+        <button id="save-profile-btn" class="h-9 w-full rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
+          Save Profile
+        </button>
+      </div>
+    </section>
+
+    <!-- 3. SINGLE PLAYER LEVELS VIEW -->
+    <section class="view" id="sp-levels-view">
+      <div class="rounded-lg border border-zinc-800 bg-zinc-900 p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-5 pb-4 border-b border-zinc-800">
+          <div class="flex items-center gap-3">
+            <button class="back-btn h-8 w-8 rounded-md border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 transition-colors flex items-center justify-center text-zinc-400 hover:text-zinc-100" data-target="home-view">
+              <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m15 18-6-6 6-6"/></svg>
+            </button>
+            <div>
+              <h2 class="text-base font-semibold text-zinc-100">Campaign Levels</h2>
+              <p class="text-xs text-zinc-400">100 levels. Open access — choose any level anytime.</p>
+            </div>
+          </div>
+
+          <div class="text-right">
+            <span class="text-xs text-zinc-400 block font-mono">COMPLETED</span>
+            <span id="sp-completed-count" class="text-sm font-semibold text-zinc-200 font-mono">0 / 100</span>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="h-1.5 w-full bg-zinc-950 rounded-full overflow-hidden border border-zinc-800/80 mb-5">
+          <div id="sp-progress-bar" class="h-full bg-blue-600 transition-all duration-300" style="width: 0%"></div>
+        </div>
+
+        <!-- Tier Filters -->
+        <div class="flex flex-wrap gap-1.5 mb-5">
+          <button class="tier-filter-btn active text-xs font-medium px-2.5 py-1 rounded-md border border-zinc-800 bg-zinc-950 text-zinc-300 hover:bg-zinc-800 transition-colors" data-tier="all">All (100)</button>
+          <button class="tier-filter-btn text-xs font-medium px-2.5 py-1 rounded-md border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200 transition-colors" data-tier="1">Novice (1–20)</button>
+          <button class="tier-filter-btn text-xs font-medium px-2.5 py-1 rounded-md border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200 transition-colors" data-tier="2">Adept (21–50)</button>
+          <button class="tier-filter-btn text-xs font-medium px-2.5 py-1 rounded-md border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200 transition-colors" data-tier="3">Expert (51–75)</button>
+          <button class="tier-filter-btn text-xs font-medium px-2.5 py-1 rounded-md border border-zinc-800 bg-zinc-950 text-zinc-400 hover:text-zinc-200 transition-colors" data-tier="4">Master (76–100)</button>
+        </div>
+
+        <!-- Levels 10x10 Grid -->
+        <div class="grid grid-cols-5 sm:grid-cols-10 gap-1.5 max-h-[420px] overflow-y-auto p-1" id="levels-grid"></div>
+      </div>
+    </section>
+
+    <!-- 4. SINGLE PLAYER GAME VIEW -->
+    <section class="view" id="sp-game-view">
+      <div class="max-w-lg mx-auto">
+        <!-- HUD Bar -->
+        <div class="h-10 px-3 rounded-lg border border-zinc-800 bg-zinc-900 flex items-center justify-between mb-4">
+          <button id="sp-back-btn" class="back-btn text-xs text-zinc-400 hover:text-zinc-100 flex items-center gap-1 transition-colors" data-target="sp-levels-view">
+            <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m15 18-6-6 6-6"/></svg>
+            <span>Levels</span>
+          </button>
+          <div class="flex items-center gap-2">
+            <span class="text-xs text-zinc-400">Level</span>
+            <span id="sp-level-label" class="font-mono text-sm font-semibold text-zinc-200">01</span>
+          </div>
+          <span id="sp-difficulty-tag" class="text-xs px-2 py-0.5 rounded bg-zinc-950 border border-zinc-800 text-zinc-400 font-mono">NOVICE</span>
+        </div>
+
+        <!-- Board -->
+        <div class="flex justify-center mb-4">
+          <div id="sp-board" class="game-board"></div>
+        </div>
+
+        <!-- Keyboard -->
+        <div id="sp-keyboard" class="keyboard"></div>
+      </div>
+
+      <!-- Result Modal -->
+      <div id="sp-modal" class="modal-overlay">
+        <div class="modal-card">
+          <div id="sp-modal-crest" class="w-10 h-10 rounded-md border border-zinc-700 bg-zinc-950 flex items-center justify-center mx-auto mb-3"></div>
+          <h2 id="sp-modal-title" class="text-base font-semibold text-zinc-100 mb-1">Level Solved</h2>
+          <p id="sp-modal-message" class="text-xs text-zinc-400 mb-5">Target word neutralized.</p>
+          <div class="space-y-2">
+            <button id="sp-modal-action" class="h-9 w-full rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">Next Level</button>
+            <button id="sp-modal-secondary" class="h-9 w-full rounded-md border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 text-sm font-medium transition-colors">Campaign Grid</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. MULTIPLAYER MENU VIEW -->
+    <section class="view" id="mp-menu-view">
+      <div class="max-w-2xl mx-auto rounded-lg border border-zinc-800 bg-zinc-900 p-6 shadow-sm">
+        <div class="flex items-center gap-3 mb-6 pb-4 border-b border-zinc-800">
+          <button class="back-btn h-8 w-8 rounded-md border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 transition-colors flex items-center justify-center text-zinc-400 hover:text-zinc-100" data-target="home-view">
+            <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <div>
+            <h2 class="text-base font-semibold text-zinc-100">Multiplayer Arena</h2>
+            <p class="text-xs text-zinc-400">Host a private race or enter a room code</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <!-- Create Room -->
+          <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                <h3 class="text-sm font-semibold text-zinc-100">Create Private Room</h3>
+              </div>
+              <p class="text-xs text-zinc-400 mb-5 leading-relaxed">Host a room with a 6-character code for up to 10 players.</p>
+
+              <label class="block text-xs font-medium text-zinc-400 mb-1.5">Match Duration</label>
+              <div class="flex items-center justify-between rounded-md border border-zinc-800 bg-zinc-900 p-1 mb-5">
+                <button class="time-adjust-btn w-8 h-8 rounded border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 flex items-center justify-center text-zinc-300" data-minutes="-1">−</button>
+                <span id="time-display" class="font-mono text-sm font-semibold text-zinc-200">03:00</span>
+                <button class="time-adjust-btn w-8 h-8 rounded border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 flex items-center justify-center text-zinc-300" data-minutes="1">+</button>
+              </div>
+            </div>
+
+            <button id="create-room-btn" class="h-9 w-full rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium transition-colors">
+              Create Room
+            </button>
+          </div>
+
+          <!-- Join Room -->
+          <div class="rounded-lg border border-zinc-800 bg-zinc-950 p-5 flex flex-col justify-between">
+            <div>
+              <div class="flex items-center gap-2 mb-3">
+                <svg class="w-4 h-4 text-zinc-300" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+                <h3 class="text-sm font-semibold text-zinc-100">Join Private Room</h3>
+              </div>
+              <p class="text-xs text-zinc-400 mb-5 leading-relaxed">Enter the 6-character room code shared by your friend.</p>
+
+              <label class="block text-xs font-medium text-zinc-400 mb-1.5" for="room-code-input">Access Code</label>
+              <input id="room-code-input" type="text" maxlength="6" placeholder="ABCXYZ" class="h-10 w-full rounded-md border border-zinc-800 bg-zinc-900 px-3 text-center text-base font-mono font-semibold tracking-widest text-blue-400 uppercase focus:outline-none focus:border-blue-600 mb-5">
+            </div>
+
+            <button id="join-room-btn" class="h-9 w-full rounded-md border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-zinc-100 text-sm font-medium transition-colors">
+              Join Arena
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. LOBBY VIEW -->
+    <section class="view" id="lobby-view">
+      <div class="max-w-xl mx-auto rounded-lg border border-zinc-800 bg-zinc-900 p-6 shadow-sm">
+        <!-- Room Info Bar -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 rounded-lg border border-zinc-800 bg-zinc-950 mb-5">
+          <div class="flex items-center gap-3">
+            <div>
+              <span class="text-xs text-zinc-500 font-mono block">ROOM CODE</span>
+              <span id="lobby-code" class="font-mono text-xl font-bold tracking-wider text-blue-400">------</span>
+            </div>
+            <button id="copy-code-btn" class="h-8 px-2.5 rounded border border-zinc-800 bg-zinc-900 hover:bg-zinc-800 text-xs font-medium text-zinc-300 flex items-center gap-1.5 transition-colors" title="Copy code">
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+              <span>Copy</span>
+            </button>
+          </div>
+
+          <div class="flex items-center gap-2 text-xs font-mono text-zinc-400">
+            <svg class="w-4 h-4 text-zinc-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            <span>Duration:</span>
+            <span id="lobby-time" class="text-zinc-200 font-semibold">03:00</span>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-between mb-3 text-xs text-zinc-400">
+          <span>Connected Players (<span id="lobby-player-count">1</span>/10)</span>
+          <span class="text-zinc-500">All players must be ready</span>
+        </div>
+
+        <!-- Player Roster List -->
+        <div class="space-y-1.5 mb-6" id="player-list"></div>
+
+        <div class="flex items-center justify-between pt-4 border-t border-zinc-800">
+          <button id="leave-btn" class="h-9 px-3.5 rounded-md border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-xs font-medium text-zinc-400 hover:text-zinc-200 transition-colors">
+            Leave Arena
+          </button>
+          <div class="flex gap-2">
+            <button id="ready-btn" class="h-9 px-4 rounded-md border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-xs font-medium text-zinc-200 transition-colors">
+              Mark Ready
+            </button>
+            <button id="start-btn" style="display:none;" disabled class="h-9 px-4 rounded-md bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:hover:bg-blue-600 text-white text-xs font-medium transition-colors">
+              Start Race
+            </button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. MULTIPLAYER GAME VIEW -->
+    <section class="view" id="mp-game-view">
+      <!-- Telemetry Bar -->
+      <div class="h-12 px-4 rounded-lg border border-zinc-800 bg-zinc-900 flex items-center justify-between gap-4 mb-5 shadow-sm">
+        <div class="flex items-center gap-2">
+          <span class="text-xs text-zinc-500 font-mono">TIME</span>
+          <span id="timer-text" class="font-mono text-base font-semibold text-blue-400">03:00</span>
+        </div>
+
+        <div class="flex-1 h-1.5 bg-zinc-950 rounded-full overflow-hidden border border-zinc-800/80">
+          <div id="timer-fill" class="h-full bg-blue-600 transition-all duration-1000" style="width: 100%"></div>
+        </div>
+
+        <div class="flex items-center gap-1.5 text-xs font-mono">
+          <span class="text-zinc-500">WORD</span>
+          <span class="text-zinc-200 font-semibold">#<span id="word-number">1</span></span>
+        </div>
+      </div>
+
+      <!-- Two-column Racing Arena -->
+      <div class="grid grid-cols-1 lg:grid-cols-[1fr_260px] gap-6 items-start">
+        <div class="flex flex-col items-center">
+          <div class="mb-4">
+            <div id="mp-board" class="game-board"></div>
+          </div>
+          <div id="mp-keyboard" class="keyboard"></div>
+        </div>
+
+        <!-- Live Standings Sidebar -->
+        <aside class="rounded-lg border border-zinc-800 bg-zinc-900 p-4 shadow-sm">
+          <div class="flex items-center gap-2 mb-3 pb-2.5 border-b border-zinc-800 text-xs font-semibold text-zinc-300">
+            <svg class="w-4 h-4 text-blue-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+            <span>Live Standings</span>
+          </div>
+          <div class="space-y-1.5" id="opponents-panel"></div>
+        </aside>
+      </div>
+    </section>
+
+    <!-- 8. RESULTS VIEW -->
+    <section class="view" id="results-view">
+      <div class="max-w-md mx-auto rounded-lg border border-zinc-800 bg-zinc-900 p-6 text-center shadow-sm">
+        <div class="w-10 h-10 rounded-md border border-zinc-800 bg-zinc-950 flex items-center justify-center mx-auto mb-3 text-blue-400">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
+        </div>
+        <h1 class="text-xl font-semibold text-zinc-100 mb-1">Race Concluded</h1>
+        <p class="text-xs text-zinc-400 mb-5 font-mono">Final Telemetry &amp; Standings</p>
+
+        <div class="space-y-1.5 mb-6 text-left" id="leaderboard"></div>
+
+        <div class="flex gap-2">
+          <button id="play-again-btn" class="h-9 flex-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors">Play Again</button>
+          <button id="results-home-btn" class="h-9 flex-1 rounded-md border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 text-xs font-medium transition-colors">Main Menu</button>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- TOAST CONTAINER -->
+  <div id="toast-container" class="fixed top-4 left-1/2 -translate-x-1/2 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+  <!-- COUNTDOWN OVERLAY -->
+  <div id="countdown-overlay" class="fixed inset-0 bg-zinc-950/90 backdrop-blur-sm z-50 flex items-center justify-center" style="display:none">
+    <div class="text-center">
+      <span class="text-xs font-mono text-zinc-500 block mb-2">RACE STARTS IN</span>
+      <span id="countdown-number" class="text-7xl font-mono font-bold text-zinc-100">3</span>
+    </div>
+  </div>
+
+  <!-- FLOATING FEEDBACK BANNER -->
+  <div id="word-feedback-banner" class="fixed top-16 left-1/2 -translate-x-1/2 z-40 px-4 py-1.5 rounded-full text-xs font-medium font-mono border shadow-md transition-all pointer-events-none" style="display:none">
+    <span id="feedback-text">CORRECT</span>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

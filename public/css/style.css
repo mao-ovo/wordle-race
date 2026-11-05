@@ -1,0 +1,310 @@
+/* ========================================================
+   WORDLE RACE — SOFTWARE DENSITY STYLESHEET
+   Strict adherence to Zero-Slop Rules & Neutral-first Palette
+   ======================================================== */
+
+/* View Switching */
+.view {
+  display: none;
+  width: 100%;
+}
+
+.view.active {
+  display: block;
+}
+
+/* ========================================================
+   WORDLE BOARD & TILES
+   ======================================================== */
+.game-board {
+  display: grid;
+  grid-template-rows: repeat(6, 1fr);
+  gap: 6px;
+}
+
+.board-row {
+  display: grid;
+  grid-template-columns: repeat(5, 58px);
+  gap: 6px;
+}
+
+.tile {
+  width: 58px;
+  height: 58px;
+  background-color: #09090b;
+  border: 1px solid #27272a;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 1.5rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #f4f4f5;
+  user-select: none;
+  transition: border-color 0.1s ease, transform 0.1s ease;
+}
+
+.tile.filled {
+  border-color: #52525b;
+  transform: scale(1.02);
+}
+
+.tile.pop {
+  animation: tilePop 0.08s ease;
+}
+
+.tile.correct {
+  background-color: #16a34a !important;
+  border-color: #15803d !important;
+  color: #ffffff !important;
+}
+
+.tile.present {
+  background-color: #ca8a04 !important;
+  border-color: #a16207 !important;
+  color: #ffffff !important;
+}
+
+.tile.absent {
+  background-color: #27272a !important;
+  border-color: #3f3f46 !important;
+  color: #71717a !important;
+}
+
+.tile.flip {
+  animation: tileFlip 0.25s ease-in-out;
+}
+
+@keyframes tilePop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1.02); }
+}
+
+@keyframes tileFlip {
+  0% { transform: rotateX(0deg); }
+  50% { transform: rotateX(90deg); }
+  100% { transform: rotateX(0deg); }
+}
+
+.board-row.shake {
+  animation: rowShake 0.4s ease-in-out;
+}
+
+@keyframes rowShake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-6px); }
+  40%, 80% { transform: translateX(6px); }
+}
+
+/* ========================================================
+   KEYBOARD
+   ======================================================== */
+.keyboard {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  user-select: none;
+}
+
+.keyboard-row {
+  display: flex;
+  justify-content: center;
+  gap: 5px;
+}
+
+.key {
+  height: 48px;
+  min-width: 32px;
+  flex: 1;
+  background-color: #27272a;
+  border: 1px solid #3f3f46;
+  border-radius: 6px;
+  color: #f4f4f5;
+  font-family: 'Inter', system-ui, sans-serif;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.1s ease, transform 0.05s ease;
+  padding: 0 4px;
+}
+
+.key:hover {
+  background-color: #3f3f46;
+}
+
+.key:active {
+  transform: translateY(1px);
+}
+
+.key.wide {
+  flex: 1.5;
+  font-size: 0.75rem;
+}
+
+.key.correct {
+  background-color: #16a34a !important;
+  border-color: #15803d !important;
+  color: #ffffff !important;
+}
+
+.key.present {
+  background-color: #ca8a04 !important;
+  border-color: #a16207 !important;
+  color: #ffffff !important;
+}
+
+.key.absent {
+  background-color: #18181b !important;
+  border-color: #27272a !important;
+  color: #52525b !important;
+}
+
+/* ========================================================
+   CAMPAIGN LEVEL CARDS
+   ======================================================== */
+.level-card {
+  height: 36px;
+  border-radius: 6px;
+  background-color: #09090b;
+  border: 1px solid #27272a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #a1a1aa;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.level-card:hover {
+  background-color: #18181b;
+  border-color: #52525b;
+  color: #f4f4f5;
+}
+
+.level-card.completed {
+  border-color: rgba(22, 163, 74, 0.4);
+  background-color: rgba(22, 163, 74, 0.1);
+  color: #4ade80;
+}
+
+.level-card.completed::after {
+  content: '✓';
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  font-size: 0.55rem;
+  font-weight: 700;
+  color: #4ade80;
+}
+
+.level-card.current {
+  border-color: #2563eb;
+  color: #60a5fa;
+}
+
+/* ========================================================
+   MODALS & OVERLAYS
+   ======================================================== */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(9, 9, 11, 0.85);
+  backdrop-filter: blur(4px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: 16px;
+}
+
+.modal-overlay.active {
+  display: flex;
+}
+
+.modal-card {
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 24px;
+  max-width: 360px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+}
+
+/* Toast Notifications */
+.toast {
+  padding: 8px 14px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  background-color: #18181b;
+  border: 1px solid #27272a;
+  color: #f4f4f5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  animation: toastFade 0.2s ease;
+}
+
+.toast.error {
+  border-color: rgba(220, 38, 38, 0.5);
+  color: #f87171;
+}
+
+.toast.success {
+  border-color: rgba(22, 163, 74, 0.5);
+  color: #4ade80;
+}
+
+.toast.info {
+  border-color: rgba(37, 99, 235, 0.5);
+  color: #60a5fa;
+}
+
+@keyframes toastFade {
+  from { opacity: 0; transform: translateY(-4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Floating Banner */
+.word-feedback-banner.correct-banner {
+  background-color: rgba(22, 163, 74, 0.15);
+  border-color: rgba(22, 163, 74, 0.4);
+  color: #4ade80;
+}
+
+.word-feedback-banner.missed-banner {
+  background-color: rgba(220, 38, 38, 0.15);
+  border-color: rgba(220, 38, 38, 0.4);
+  color: #f87171;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 640px) {
+  .board-row {
+    grid-template-columns: repeat(5, 50px);
+    gap: 4px;
+  }
+  .tile {
+    width: 50px;
+    height: 50px;
+    font-size: 1.3rem;
+  }
+  .key {
+    height: 42px;
+    font-size: 0.75rem;
+  }
+}
