@@ -326,16 +326,13 @@ button, .key, .keyboard, .keyboard-row, .modal-card, .btn-action {
 }
 
 /* Room Chat Scrollbars */
-#lobby-chat-messages::-webkit-scrollbar,
-#results-chat-messages::-webkit-scrollbar {
+#lobby-chat-messages::-webkit-scrollbar {
   width: 4px;
 }
-#lobby-chat-messages::-webkit-scrollbar-track,
-#results-chat-messages::-webkit-scrollbar-track {
+#lobby-chat-messages::-webkit-scrollbar-track {
   background: transparent;
 }
-#lobby-chat-messages::-webkit-scrollbar-thumb,
-#results-chat-messages::-webkit-scrollbar-thumb {
+#lobby-chat-messages::-webkit-scrollbar-thumb {
   background: #27272a;
   border-radius: 4px;
 }

@@ -1036,9 +1036,22 @@ const VALID_GUESSES_LIST = [
   "ZONES",
 ];
 
+// Comprehensive 14,855-word dictionary for exhaustive 5-letter English word validation
+let comprehensiveDictionary = [];
+try {
+  comprehensiveDictionary = require('./valid_guesses.json');
+} catch (e) {
+  comprehensiveDictionary = [];
+}
+
 // Clean and populate VALID_GUESSES with valid 5-letter uppercase words
 const cleanGuesses = VALID_GUESSES_LIST.filter(w => typeof w === 'string' && w.length === 5 && /^[A-Z]{5}$/.test(w));
 const VALID_GUESSES = new Set(cleanGuesses);
+comprehensiveDictionary.forEach(w => {
+  if (typeof w === 'string' && w.length === 5) {
+    VALID_GUESSES.add(w.toUpperCase());
+  }
+});
 LEVELS.forEach(w => VALID_GUESSES.add(w));
 MULTIPLAYER_POOL.forEach(w => VALID_GUESSES.add(w));
 

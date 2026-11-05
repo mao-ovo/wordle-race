@@ -418,32 +418,12 @@
         <h1 class="text-xl font-semibold text-zinc-100 mb-1">Race Ended</h1>
         <p class="text-xs text-zinc-400 mb-5 font-mono">Scoreboard</p>
 
-        <div class="space-y-1.5 mb-5 text-left" id="leaderboard"></div>
-
-        <!-- Room Chat Box in Results -->
-        <div class="rounded-md border border-zinc-800 bg-zinc-950 mb-5 overflow-hidden text-left">
-          <div class="h-8 px-3 border-b border-zinc-800/80 bg-zinc-900/60 flex items-center justify-between">
-            <div class="flex items-center gap-1.5 text-zinc-300 text-xs font-medium">
-              <svg class="w-3.5 h-3.5 text-zinc-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span>Room Chat</span>
-            </div>
-            <span class="text-[10px] font-mono text-zinc-500">Live</span>
-          </div>
-          <div id="results-chat-messages" class="h-32 overflow-y-auto p-2.5 space-y-2 text-xs font-sans">
-            <div class="text-[11px] text-zinc-500 font-mono text-center py-2">
-              Match concluded! Chat with your opponents.
-            </div>
-          </div>
-          <form id="results-chat-form" class="p-1.5 border-t border-zinc-800 flex gap-1.5 bg-zinc-900/40">
-            <input id="results-chat-input" type="text" maxlength="150" placeholder="Type a message..." autocomplete="off" class="flex-1 h-8 px-2.5 rounded bg-zinc-950 border border-zinc-800 text-xs text-zinc-200 placeholder:text-zinc-500 focus:outline-none focus:border-blue-600 font-sans" style="font-size: 16px;">
-            <button type="submit" class="h-8 px-3 rounded bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium flex items-center gap-1 transition-colors flex-shrink-0">
-              <span>Send</span>
-              <svg class="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
-            </button>
-          </form>
-        </div>
+        <div class="space-y-1.5 mb-6 text-left" id="leaderboard"></div>
 
         <div class="flex gap-2">
+          <button id="play-again-btn" class="h-9 flex-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors">Play Again</button>
+          <button id="results-home-btn" class="h-9 flex-1 rounded-md border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 text-xs font-medium transition-colors">Main Menu</button>
+        </div>
           <button id="play-again-btn" class="h-9 flex-1 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-xs font-medium transition-colors">Play Again</button>
           <button id="results-home-btn" class="h-9 flex-1 rounded-md border border-zinc-800 bg-zinc-950 hover:bg-zinc-800 text-zinc-300 text-xs font-medium transition-colors">Main Menu</button>
         </div>

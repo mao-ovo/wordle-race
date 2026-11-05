@@ -97,18 +97,16 @@ function endGame(roomCode) {
   // Populate active players in room
   room.playerIds.forEach(id => {
     const p = players[id];
-    if (p) {
-      playerMap.set(id, {
-        playerId: id,
-        name: p.name || 'Player',
-        avatar: p.avatar || 'terminal',
-        wordsCompleted: p.mpWordsCompleted || 0,
-        currentRow: p.mpRow || 0,
-        bestLettersRight: p.mpBestLettersRight || 0,
-        totalLettersRight: p.mpTotalLettersRight || 0,
-        bestPresentLetters: p.mpBestPresentLetters || 0
-      });
-    }
+    playerMap.set(id, {
+      playerId: id,
+      name: (p && p.name) ? p.name : 'Player',
+      avatar: (p && p.avatar) ? p.avatar : 'terminal',
+      wordsCompleted: p ? (p.mpWordsCompleted || 0) : 0,
+      currentRow: p ? (p.mpRow || 0) : 0,
+      bestLettersRight: p ? (p.mpBestLettersRight || 0) : 0,
+      totalLettersRight: p ? (p.mpTotalLettersRight || 0) : 0,
+      bestPresentLetters: p ? (p.mpBestPresentLetters || 0) : 0
+    });
   });
 
   // Preserve any recorded participants who might have disconnected
@@ -116,11 +114,29 @@ function endGame(roomCode) {
     Object.values(room.matchStats).forEach(stat => {
       if (!playerMap.has(stat.playerId)) {
         playerMap.set(stat.playerId, { ...stat });
+      } else {
+        const existing = playerMap.get(stat.playerId);
+        if (stat.wordsCompleted > existing.wordsCompleted) existing.wordsCompleted = stat.wordsCompleted;
+        if (stat.bestLettersRight > existing.bestLettersRight) existing.bestLettersRight = stat.bestLettersRight;
+        if (stat.totalLettersRight > existing.totalLettersRight) existing.totalLettersRight = stat.totalLettersRight;
+        if (stat.currentRow > existing.currentRow) existing.currentRow = stat.currentRow;
       }
     });
   }
 
   const allPlayers = Array.from(playerMap.values());
+  if (allPlayers.length === 0 && room.hostId && players[room.hostId]) {
+    allPlayers.push({
+      playerId: room.hostId,
+      name: players[room.hostId].name || 'Player',
+      avatar: players[room.hostId].avatar || 'terminal',
+      wordsCompleted: 0,
+      currentRow: 0,
+      bestLettersRight: 0,
+      totalLettersRight: 0,
+      bestPresentLetters: 0
+    });
+  }
   const hasWinner = allPlayers.some(p => p.wordsCompleted > 0);
 
   allPlayers.sort((a, b) => {
@@ -189,6 +205,10 @@ function leaveRoom(socketId) {
   if (!room) return;
 
   room.playerIds.delete(socketId);
+  const sock = io.sockets.sockets.get(socketId);
+  if (sock) {
+    sock.leave(roomCode);
+  }
 
   // If room is now empty, delete it
   if (room.playerIds.size === 0) {
@@ -409,6 +429,30 @@ io.on('connection', (socket) => {
     }
 
     io.to(player.roomCode).emit('room-chat-message', chatMsg);
+  });
+
+  // Rejoin room after reconnection
+  socket.on('rejoin-room', (data) => {
+    if (!data || !data.roomCode) return;
+    const code = String(data.roomCode).trim().toUpperCase();
+    const room = rooms[code];
+    if (!room) return;
+
+    const player = players[socket.id];
+    if (!player) return;
+
+    player.roomCode = code;
+    room.playerIds.add(socket.id);
+    socket.join(code);
+
+    socket.emit('room-rejoined', {
+      roomCode: code,
+      players: getRoomPlayerList(room),
+      timeLimit: room.timeLimit,
+      hostId: room.hostId,
+      status: room.status,
+      chatHistory: room.chatHistory || []
+    });
   });
 
   // Toggle ready status

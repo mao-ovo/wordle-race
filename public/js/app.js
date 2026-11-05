@@ -749,6 +749,22 @@ function updateTimeDisplay() {
 socket.on('connect', () => {
   myId = socket.id;
   socket.emit('set-profile', { name: profile.name, avatar: profile.avatar });
+  if (roomCode && (currentView === 'lobby-view' || currentView === 'mp-game-view' || currentView === 'results-view')) {
+    socket.emit('rejoin-room', { roomCode: roomCode });
+  }
+});
+
+socket.on('room-rejoined', (data) => {
+  if (data.players) {
+    players = {};
+    data.players.forEach(p => {
+      players[p.playerId] = p;
+    });
+    renderPlayerList();
+  }
+  if (data.chatHistory) {
+    loadRoomChat(data.chatHistory);
+  }
 });
 
 socket.on('disconnect', () => {
@@ -946,8 +962,8 @@ socket.on('game-over', (data) => {
   if (list.length === 0) {
     const fallbackList = [{
       playerId: myId,
-      name: myName || 'Player',
-      avatar: myAvatar || 'terminal',
+      name: (profile && profile.name) ? profile.name : 'Player',
+      avatar: (profile && profile.avatar) ? profile.avatar : 'terminal',
       wordsCompleted: wordsCompleted || 0,
       currentRow: currentRow || 0,
       bestLettersRight: 0,
@@ -957,8 +973,8 @@ socket.on('game-over', (data) => {
     Object.values(opponents).forEach((op, i) => {
       fallbackList.push({
         playerId: op.playerId,
-        name: op.name || 'Player',
-        avatar: op.avatar || 'terminal',
+        name: (op && op.name) ? op.name : 'Player',
+        avatar: (op && op.avatar) ? op.avatar : 'terminal',
         wordsCompleted: op.wordsCompleted || 0,
         currentRow: op.currentRow || 0,
         bestLettersRight: 0,
@@ -1227,22 +1243,13 @@ document.addEventListener('DOMContentLoaded', () => {
     showView('home-view');
   });
 
-  // Room Chat Form Handlers
+  // Room Chat Form Handler (Lobby)
   const lobbyChatForm = document.getElementById('lobby-chat-form');
   const lobbyChatInput = document.getElementById('lobby-chat-input');
   if (lobbyChatForm && lobbyChatInput) {
     lobbyChatForm.addEventListener('submit', (e) => {
       e.preventDefault();
       sendRoomChatMessage(lobbyChatInput);
-    });
-  }
-
-  const resultsChatForm = document.getElementById('results-chat-form');
-  const resultsChatInput = document.getElementById('results-chat-input');
-  if (resultsChatForm && resultsChatInput) {
-    resultsChatForm.addEventListener('submit', (e) => {
-      e.preventDefault();
-      sendRoomChatMessage(resultsChatInput);
     });
   }
 
